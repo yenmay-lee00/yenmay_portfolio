@@ -17,7 +17,7 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 - [Association between Levels of Pollution and Mortality in US Cities](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Association%20between%20Levels%20of%20Pollution%20and%20Mortality%20in%20US%20cities.pdf)
 
 ### 5️⃣ Introduction to Scientific Computation
-- [Root Finders: Bisection Method, Fixed-point Iteration Method, Newton’s Method, Secant Method] (https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/root_finders.py)
+- [Root Finders: Bisection Method, Fixed-point Iteration Method, Newton’s Method, Secant Method](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/root_finders.py)
 - [System Solvers: Gaussian Elimination, Doolittle Factorisation, Gauss–Seidel Method](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/systemsolvers.py)
 - [Polynomial Interpolation](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/polynomial_interpolation.py)
 - [Numerical Differentiation](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/numerical_differentiation.py)
