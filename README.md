@@ -7,7 +7,7 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 - [Pricing Insurance Products](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Pricing%20Insurance%20Products.pdf)
 
 ### 2️⃣ Applied Statistical Modelling
-- Risk Prediction Model for Infant Respiratory Disease
+- [Risk Prediction Model for Infant Respiratory Disease](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Risk%20Prediction%20Model%20for%20Infant%20Respiratory%20Diseases.pdf)
 
 ### 3️⃣ Optimization
 
