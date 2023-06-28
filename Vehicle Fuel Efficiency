@@ -1,1 +1,309 @@
+---
+title: "20311298_MATH3057 Coursework 1"
+author: "Lee Yen May"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+```{r, echo = FALSE}
+options(warn=-1)
+suppressPackageStartupMessages(library(knitr))
+suppressPackageStartupMessages(library(kableExtra))
+suppressPackageStartupMessages(library(dplyr))
+suppressPackageStartupMessages(library("ggplot2"))                     
+suppressPackageStartupMessages(library("GGally"))
+suppressPackageStartupMessages(library(gridExtra))
+suppressPackageStartupMessages(library(factoextra))
+```
+
+## Question 1
+
+### Data Processing
+
+##### Overview of Auto MPG Dataset
+
+The Auto MPG dataset consists of 6 numerical variables (2 of data type 'float' and 4 of data type 'integer') and 2 qualitative variables. The objective our analysis is to explore the relationships of fuel efficiency with other attributes of the cars included within the dataset. The description of each attribute is extracted from \href{https://rstudio-pubs-static.s3.amazonaws.com/668943_ebf3956c10654e178fd843baf6589c13.html}{\textcolor{blue}{this source}} and Wikipedia definitions.
+
+```{r data}
+ds <- read.csv("auto-mpg.csv")
+str(ds) # display the structure of the dataset
+```
+
+```{r table, echo = FALSE}
+library(knitr)
+library(kableExtra)
+
+# create the data frame
+df <- data.frame(
+  Variable = c("mpg", "cylinders", "displacement","horsepower","weight","acceleration","model.year","car.name"),
+  Variable_Type = c("quantitative", "qualitative","quantitative","quantitative","quantitative","quantitative","quantitative","qualitative"),
+  Data_Type = c("float", "integer", "integer", "integer", "integer", "float", "integer", "string"),
+  Description = c("Miles per gallon (fuel efficiency)", "Number of cylinders in the engine", "Engine displacement or measure of the cylinder volume", "Engine horsepower", "Vehicle weight (in pounds)", "Time to accelerate from 0 to 60 mph (in seconds)", "Model year", "Car name")
+)
+
+# format the table
+kable(df, col.names = c("Variable", "Variable Type", "Data Type", "Description"), 
+      align = "lccll", caption = "Auto-MPG Dataset Variables") %>%
+  kable_styling(bootstrap_options = "striped", full_width = FALSE) %>%
+  row_spec(0, bold = TRUE, color = "black", background = "white") %>%
+  column_spec(1, bold = TRUE)
+```
+
+
+##### Data Cleaning
+The variable 'horsepower' is observed to have character values (ie."?"), those rows are removed.
+```{r remove-rows}
+ds <- ds[!(ds$horsepower=="?"),]
+ds$horsepower <- as.integer(ds$horsepower)
+```
+
+The original dataset has 398 rows, a total of 6 rows are removed, leaving 392 rows, n = 392.
+```{r count-rows}
+n = nrow(ds)
+```
+
+### Exploratory Analysis
+We attempt to visualise the correlation between the numerical variables, therefore, a subset of the dataset which excludes "car.name" is created. Here, we adopt 2 methods of data visualisation.
+
+##### 1. Scatterplot
+Since "cylinders" and "model.year" are categorical variables, they are excluded from the figure below.
+```{r fig1, fig.width=8, fig.height=8, fig.keep = 'last'}
+library(dplyr)
+library("ggplot2")                     
+library("GGally")
+table = ds %>% dplyr::select(mpg, cylinders, displacement, 
+                             horsepower, weight, acceleration, model.year)
+ggpairs(select(table, -c(cylinders, model.year)))+theme_bw()
+```
+
+All 5 variables seem to have a linear relationship with each other, though more weakly when compared against acceleration, indicating that acceleration has little impact on fuel efficiency. There is a strong positive correlation between horsepower and displacement, horsepower and weight, and weight and displacement. This implies that a car with more engine power tends to have higher volume of cylinder and is heavier. There is a strong negative correlation when comparing mpg against displacement, weight, and horsepower. This indicates that as displacement, horsepower and weight increase, the car's mpg decreases instead. Hence, a high displacement, high horsepower and heavy vehicle is adverse to fuel efficiency.
+
+##### 2. Boxplots
+We introduce "cylinders" and "model.year" back into our analysis. We observe some obvious patterns in each boxplot when comparing the variables against the number of cylinders in the vehicle. We also acknowledge the data deficit for vehicles with 3 and 5 cylinders.
+```{r fig2, fig.width=8, fig.height=8, fig.keep = 'last'}
+library(gridExtra)
+
+table$cylinders = factor(table$cylinders, levels=c(3,4,5,6,8), 
+                         labels=c("3cyl","4cyl","5cyl","6cyl","8cyl"))
+
+p1 <- qplot(cylinders, mpg, data=table, geom=c("boxplot","jitter"), 
+            main="Mileage by Cylinder Number", xlab="",ylab="Miles per Gallon")
+p2 <- qplot(cylinders, horsepower, data=table, geom=c("boxplot","jitter"), 
+            main="Horsepower by Cylinder Number", xlab="",ylab="Horsepower")
+p3 <- qplot(cylinders, displacement, data=table, geom=c("boxplot","jitter"), 
+            main="Displacement by Cylinder Number", xlab="",ylab="Displacement")
+p4 <- qplot(cylinders, weight, data=table, geom=c("boxplot","jitter"), 
+            main="Weight by Cylinder Number", xlab="",ylab="Weight")
+p5 <- qplot(cylinders, acceleration, data=table, geom=c("boxplot","jitter"), 
+            main="Acceleration by Cylinder Number", xlab="",ylab="Acceleration")
+p6 <- qplot(cylinders, model.year, data=table, geom=c("boxplot","jitter"), 
+            main="Model Year by Cylinder Number", xlab="",ylab="Model Year")
+
+grid.arrange(p1, p2, p3, p4, p5, p6, ncol=2)
+
+```
+We observe that as the number of cylinders increases, the horsepower, displacement and weight also increase. On the contrary, mpg decreases. This is consistent with our inference on the positive correlation between the three variables and their negative correlation to mpg. The spread for 4 cylinders is greater in mpg whereas the spread for 8 cylinders is greater in horsepower. This indicates that data points for these variables at their respective number of cylinders have broader range of observation and are less consistent compared to other number of cylinders. The spreads in displacement and weight are relatively small and consistent throughout. The boxplot for 8 cylinders does not overlap with other number of cylinders when plotted against acceleration, hence it may suggest that an attribute of 8 cylinders has a positive relationship with lower acceleration in vehicle. The model year does not seem to have a significant correlation with the number of cylinders.
+
+### Principal Component Analysis (PCA)
+From the summary, we observe that the quantities each variable represents differ widely from each other. Therefore, PCA based on correlation matrix is carried out.
+```{r}
+table$cylinders = ds$cylinders
+summary(table)
+```
+
+```{r}
+# Center the data
+tablebar = colMeans(table)
+table <- as.matrix(sweep(table, 2, tablebar))
+
+# Correlation matrix
+R = cor(table)
+eigen(R)
+
+# PCA
+table.pca = prcomp(table, scale = TRUE)
+head(table.pca$x) # transformed variable
+summary(table.pca)
+```
+
+##### Scree Plot
+```{r fig3}
+plot(table.pca$sdev^2/sum(table.pca$sdev^2), type="b", 
+     xlab="Principal component", ylab="Percentage of variance explained")
+```
+
+We decide that PC1, PC2 and PC3 best represent our data because (1) the last 4 eigenvalues are close to 0, (2) a 94.35% cumulative proportion of variance is achieved with the first 3 eigenvalues and eigenvectors and (3) percentage of variance explained has achieved a good coverage by PC3 based on the scree plot. We will ignore PC4 until PC7 for the subsequent operations.
+
+##### Interpretation of PC Scores
+We only visualise PC1 against PC2. We could include PC3 with a 3D plot but it is not demonstrated here.
+```{r fig4}
+library(factoextra)
+par(pty="s")
+
+fviz_pca_biplot(table.pca, scale = TRUE, cex = 0.7, 
+                label = "var", xlab = "PC 1", ylab = "PC 2")
+```
+```{r fig5}
+pca_scores <- data.frame(PC1 = table.pca$x[,1],
+                          PC2 = table.pca$x[,2],
+                          mpg = ds[,1])
+# Indicate points by colour and mpg value
+library(ggplot2)
+ggplot(pca_scores, aes(x = PC1, y = PC2, label = mpg)) +
+  geom_hline(yintercept = 0, color = "grey50") +
+  geom_vline(xintercept = 0, color = "grey50") +
+  geom_text(hjust = 0, vjust = 0, color = "grey50", size = 3.5) +
+  geom_point(aes(color = mpg), size = 2) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(title = "PCA Biplot", x = "PC 1", y = "PC 2", color = "mpg") +
+  theme_bw()
+```
+
+PC1 as a linear combination of the original features:
+
+\begin{align*}
+\mathbf{y}_1 =&\ 0.40 \times \text{mpg} \\
+&-0.42 \times \text{cylinders} \\
+&-0.43 \times \text{displacement} \\
+&-0.42 \times \text{horsepower} \\
+&-0.41 \times \text{weight} \\
+&+0.28 \times \text{acceleration} \\
+&+0.23 \times \text{model.year}
+\end{align*}
+
+PC2 as a linear combination of the original features:
+
+\begin{align*}
+\mathbf{y}_2 =&\ -0.21 \times \text{mpg} \\
+&-0.20 \times \text{cylinders} \\
+&-0.18 \times \text{displacement} \\
+&-0.09 \times \text{horsepower} \\
+&-0.22 \times \text{weight} \\
+&+0.01 \times \text{acceleration} \\
+&-0.91 \times \text{model.year}
+\end{align*}
+
+From $\mathbf{y}_1$, we observe that cylinders, displacement, horsepower and weight have high negative coefficients. Therefore, a vehicle with a low PC1 score implies that it has a low fuel efficiency, and likely to have attributes such as many cylinders, high volume of cylinders, high engine power and heavy. From $\mathbf{y}_2$, we observe that acceleration is the only positive coefficient and model year has an exceptionally high negative coefficient. Therefore, a vehicle with a positive PC2 score has the attribute of a high acceleration car and a high negative PC2 score is likely to represent a very old vehicle. This is in line with the coloured biplot above, where vehicles with low fuel efficiency (ie. low mpg) is observed to have high negative PC1 and PC2 score. The order of fuel efficiency from the lowest to the highest is vehicles in quadrant 3, followed by quadrant 2 and quadrant 4. Vehicles with high positive PC1 and PC2 score (ie. quadrant 1) have the highest fuel efficiency.
+
+
+## Question 2
+
+We construct a 10x3 data matrix with the third column as a linear combination of the first and second columns. Random numbers in the matrix are generated from the normal distribution.
+```{r}
+# for reproducibility
+set.seed(123) 
+# create a 10x3 matrix of random normal values
+X <- matrix(rnorm(30), nrow = 10) 
+# create the third column as a linear combination of the first and second columns
+X[,3] <- X[,1] + X[,2] 
+
+# centering
+xbar = colMeans(X)
+X <- as.matrix(sweep(X, 2, xbar))
+X
+```
+
+(a) Sample covariance matrix with n as the denominator.
+```{r}
+# sample covariance matrix
+cov_mat = 1/10 * t(X) %*% X
+# cov(X)*9/10 # alternative method
+```
+
+(b) Eigenvalues and eigenvectors of the covariance matrix. We observe that $\lambda_3=0$, which is within expectation because the third column is a linear combination of the first and second column. We will ignore PC 3 in the subsequent workings.
+```{r}
+eigen(cov_mat)
+```
+
+(c) Produce 2 plots side-by-side. 
+
+- The plot of the first two columns of the centered data along with the first two PCs.
+- The plot of the transformed variables for the first two PCs. 
+
+We observe that the variation is indeed in line with the new coordinate axes, it is more obvious when we observe the points that fall into the four respective quadrants separated by segments formed from PC scores. All 10 randomly generated observations are numbered accordingly.
+```{r fig6}
+par(pty="s")
+pca <- prcomp(X) # compute principal components
+(X_svd = svd(X))
+x1 = X_svd$v[1,1]
+y1 = X_svd$v[2,1]
+
+x2 = X_svd$v[1,2]
+y2 = X_svd$v[2,2]
+
+par(mfrow = c(1,2)) # create two subplots side-by-side
+
+# plot (i)
+plot(X[,1], X[,2], xlab="Col 1 (centered)", ylab="Col 2 (centered)", asp=1)
+text(X[,1], X[,2], labels = 1:nrow(X), pos = 3)
+points(0,0, pch = 19, col = "blue") # the centered mean
+
+lambda1 = X_svd$d[1]^2/10
+segments(0,0, sqrt(lambda1)*x1, sqrt(lambda1)*y1, col = "red")
+segments(0,0, -sqrt(lambda1)*x1, -sqrt(lambda1)*y1, col = "red")
+
+lambda2 = X_svd$d[2]^2/10
+segments(0,0, sqrt(lambda2)*x2, sqrt(lambda2)*y2, col = "green")
+segments(0,0, -sqrt(lambda2)*x2, -sqrt(lambda2)*y2, col = "green")
+
+legend("bottomright", legend = c("PC1", "PC2"), 
+       col = c("red", "green"), lty = 1, cex=0.70)
+text(1.4, 1.5, "6", col="black", cex=1)
+
+# plot (ii)
+plot(pca$x[,1], pca$x[,2], xlab="First PC Score", ylab="Second PC Score", asp=1)
+text(pca$x[,1], pca$x[,2], labels = 1:nrow(pca$x), pos = 3)
+segments(0,0, sqrt(lambda1)*x1, 0, col = "red")
+segments(0,0, -sqrt(lambda1)*x1, 0, col = "red")
+segments(0,0, 0, sqrt(lambda2)*y2, col = "green")
+segments(0,0, 0, -sqrt(lambda2)*y2, col = "green")
+
+```
+
+(d) Singular value decomposition of $\mathbf{HX}$ and $\frac{1}{\sqrt{n}}\mathbf{HX}$. 
+```{r}
+n = 10
+# Calculate the centering matrix H
+H = diag(rep(1,n))-rep(1,n)%*%t(rep(1,n))/n   
+
+# Calculate SVD of HX
+svd(H%*%X)
+# Calculate SVD of 1/sqrt(n)*HX
+svd(1/sqrt(n)*H%*%X)
+```
+
+- How are the two sets of singular values related?
+The two sets of singular values are related by scaling:
+The singular values of $c\mathbf{X}$ is equivalent to $c \times$ singular values of $\mathbf{X}$.
+Therefore, the singular values of $\frac{1}{\sqrt{10}}\mathbf{X}$ is equivalent to $\frac{1}{\sqrt{10}} \times$ singular values of $\mathbf{X}$.
+```{r}
+# 1/sqrt(n) * singular values of HX
+svd_X = svd(H%*%X)$d
+(c_svd_X = 1/sqrt(n)*svd_X)
+# is equivalent to singular values of 1/sqrt(n)*HX
+(svd_cX = svd(1/sqrt(n)*H%*%X)$d)
+```
+
+- How do the singular values relate to the eigenvalues computed previously?
+There are two ways to derive eigenvalues when conducting PCA:
+Method 1 - Derive the eigenvalues of covariance matrix $\mathbf{S}=\frac{1}{n}\mathbf{X^TX}$.
+Method 2 - The squared value of singular values computed in previous section.
+
+Eigenvalues computed by Method 1:
+$$ 
+\mathbf{\Lambda}=
+\begin{pmatrix}
+4.231\\
+0.375\\
+0
+\end{pmatrix}
+$$
+
+Eigenvalues computed by Method 2:
+```{r}
+c_svd_X^2
+svd_cX^2
+```
+
+Observe that eigenvalues computed using Method 2 is the same as Method 1.
 
