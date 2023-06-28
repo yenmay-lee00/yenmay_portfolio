@@ -3,7 +3,7 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 
 ## Courses
 ### 1️⃣ Multivariate Analysis
-- Vehicle Fuel Efficiency
+- [Vehicle Fuel Efficiency](Vehicle Fuel Efficiency.pdf)
 - Pricing Insurance Products
 
 ### 2️⃣ Applied Statistical Modelling
