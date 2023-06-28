@@ -1,0 +1,346 @@
+---
+title: 'A Better Future for Infants: Risk Prediction Model for Infant Respiratory
+  Disease'
+author: "Lee Yen May"
+output:
+  pdf_document: default
+  html_notebook: default
+  html_document:
+    df_print: paged
+---
+```{r, echo = FALSE}
+# options(warn=-1)
+```
+
+## Introduction
+Respiratory disease is a major health concern for infants worldwide. According to the World Health Organization (WHO), pneumonia alone accounts for 14% of all deaths of children under 5 years old, killing 740,180 children in 2019. Therefore, identifying the factors that increase the risk of respiratory disease in infants is critical for improving infant mortality rate. In this study, we aim to (1) explore the factors associated with the risk of respiratory disease in infants and (2) create a risk prediction model to estimate the probability of an infant developing respiratory disease within their first year of life. 
+
+To achieve these aims, we identify the significant predictors from variables of these three categories, namely infant characteristics, maternal characteristics and environmental factors. Data was collected from 18,422 infants across 40 countries. The independent variables investigated are shown below:
+```{r, fig.align='center'}
+knitr::include_graphics("vartable.png")
+```
+
+The response variable "status" follows a Bernoulli distribution $y_i \sim \text{Bernoulli} (p_i)$ with the following probability density function:
+$$P(k) = \begin{cases} 1-p & \text{for } k=0 \\ p & \text{for } k=1 \end{cases}$$
+Each observation can only take on one of two possible outcomes, ie. presence or absence of the respiratory disease.
+
+## Exploratory Data Analysis
+```{r}
+library(MASS)
+library(knitr)
+library(kableExtra)
+
+train <- read.csv("MATH3046_train_data.csv")
+str(train) # display the structure of the dataset
+sum(is.na(train)) # check for NA values
+```
+
+We determine the summary statistics to describe the relationship between the independent variables with the response variable status. By visual inspection, we have checked that all infants have non-smoker mothers hence variable "smoking" is not meaningful and will be dropped from the analysis.
+
+For the categorical variables, we compare the frequency and the percentage within their respective levels for infant with and without disease.
+```{r}
+cat_vars <- c("gender", "fed_method", "delivery_type", "weight", "diabetes", "API")
+cat_table <- data.frame()
+
+for (var in cat_vars) {
+  for (lvl in unique(train[[var]])) {
+    # subset the train data by the variable and its level
+    sub_train <- subset(train, train[[var]] == lvl) 
+
+    for (i in c(0, 1)) {
+      freq <- sum(sub_train$status == i) # calculate frequency
+      perc <- freq/nrow(sub_train) # calculate percentage
+      
+      # add the results to the output dataframe cat_table
+      cat_table <- rbind(cat_table, data.frame(
+        variable = var,
+        level = lvl,
+        status = i,
+        frequency = freq,
+        percentage_within_lvl = perc
+      ))
+    }
+  }
+}
+
+cat_table
+```
+
+For the continuous variable "sleep_hour", we observe that it follows a normal distribution.
+```{r}
+hist(sleep_hour, main = "Distribution of Sleep Hour", xlab = "sleep_hour")
+# normal distribution -> appropriate summary stats: means and s.d.
+# not normal distribution -> appropriate summary stats: median and IQR
+```
+
+We compare its means and standard deviations for infant with and without disease.
+```{r}
+cont_table <- data.frame()
+for (val in c(0, 1)) {
+  # subset the train data for the current value of "status"
+  sub_train <- train[train$status == val, ] 
+  sleep_hour_mean <- mean(sub_train$sleep_hour) # calculate mean
+  sleep_hour_sd <- sd(sub_train$sleep_hour) # calculate sd
+
+  # add the results to the output dataframe cont_table
+  cont_table <- rbind(cont_table, data.frame(status = val,
+                                             sleep_hour_mean = sleep_hour_mean,
+                                             sleep_hour_sd = sleep_hour_sd))
+}
+
+cont_table
+```
+
+To test if there is a difference between the status of respiratory disease and each independent variable, we use chi-squared test for the categorical variables and t-test for the continuous variable. 
+
+For categorical variables, the hypothesis test is expressed as
+$$H_0:\beta_i=0 \\ H_1: \beta_i \neq 0$$
+where $\beta_i$ represents the coefficient of each categorical variable within the dataset.
+```{r}
+# chi-squared test
+sub_train <- subset(train, select = -c(sleep_hour, smoking))
+
+for (col in colnames(sub_train)) {
+  if (col != "status") {
+    tbl <- table(sub_train[[col]], sub_train$status)
+    chi_test <- chisq.test(tbl)
+    print(paste("Chi-squared test for", col))
+    print(chi_test)
+  }
+}
+```
+For the only continuous variable "sleep_hour", the hypothesis test is expressed as
+$$H_0: \mu_{status}=\mu_{sleep\_hour} \\ H_1: \mu_{status} \neq \mu_{sleep\_hour}$$
+where y represents the sample mean for "status" and x represents the sample mean for "sleep_hour".
+```{r}
+# t-test
+sub_train <- train[, c("status", "sleep_hour")]
+t_test_result <- t.test(sleep_hour ~ status, data = sub_train)
+t_test_result
+```
+
+The results for categorical variables are summarised below:
+```{r, fig.align='center'}
+knitr::include_graphics("catgorical table.png")
+```
+
+Based on summary statistics, we identify that we have 6200 more diseased infants than healthy infants. Therefore we analyse the relationship between "status" and each categorical variable using percentage split within each level rather than percentage split within the whole sample for a more meaningful interpretation. We observe the percentage split for each categorical variable and verify the significance of each variable's observed differences in its percentages using chi-squared test as follows:
+
+gender: The percentage of diseased male infants (33.12%) is approximately the same as the percentage of diseased female infants (33.21%), its p-value of 0.9149 also suggests that the observed differences in the percentages for gender is not significant.
+
+fed_method: The percentage of diseased infants is approximately the same among those who were given supplements (33.47%), only breast-fed (32.45%) and only bottle-fed (33.96%). However, infants who were both bottle-fed and breast-fed (28.77%) seem to have a lower percentage of developing disease compared to the three other feeding methods. With a p-value of 0.3642, the observed differences in the percentages for fed_method is not significant.
+
+delivery_type: The percentage of infants with disease is higher among those who were born via C-section (36.13%) compared to those who were born naturally (32.83%). With a p-value of 0.003969, the observed differences in the percentages for delivery_type is significant.
+
+weight: There is a higher percentage of diseased infants with underweight mothers (34.68%) compared to normal weight mothers (32.68%). With a p-value of 0.03275, the observed differences in the percentages for weight is significant.
+
+diabetes: The percentage of infants with disease is slightly higher among those who have diabetic mothers (33.99%) compared to those who do not have diabetic mothers (31.62%). With a p-value of 0.001217, the observed differences in the percentages for the mother's diabetic status is significant.
+
+API: The percentage of infants with disease increases as air quality in their residing region worsens, with the highest percentage in the "hazardous" level (34.93%) and the lowest percentage in the "good" level (30.04%). With a p-value of 0.02768, the observed differences in air pollution index is significant. This indicates that air quality contributes to infant's disease status.
+
+In summary, the observations imply that fed_method, delivery_type, weight, diabetes and API may be related to the disease status, while gender may not be related. We verify our observations with chi-squared tests. Based on the p-values from the chi-squared tests above, we can reject the null hypothesis for delivery_type, weight, diabetes and API at a 5% significance level, indicating that these variables have a significant effect on disease status. On the other hand, we cannot reject the null hypothesis for gender and fed_method, indicating the otherwise.
+
+The results for the continuous variable sleep_hour is summarised below:
+```{r, fig.align='center'}
+knitr::include_graphics("cont table.png")
+```
+
+We observe that its mean and variance are similar. This implies that sleep_hour does not affect disease status. This is also consistent with the result from t-test where we reject the null hypothesis at a 5% significance level.
+
+## Model Assumption
+
+Based on the relationships identified above, we expect to use logistic regression for model building. However, the data needs to fulfill 4 assumptions of a logistic regression model.
+
+1. Logistic regression requires the dependent variable to be binary or count. The response variable status is binary.
+
+2. Logistic regression requires all independent variables to have independent observations. Since we have excluded variable "smoking" which has identical observations, this assumption is fulfilled.
+
+3. Logistic regression assumes linearity of continuous independent variables and log odds (ie. logit) of the dependent variable. Therefore, we assess the linearity assumption between log(p/(1-p)) and average sleeping hour, where p is the logit derived from full model. It is not meaningful to check linearity assumption for categorical variables.
+```{r}
+fullModel0 = glm(status ~ gender + fed_method + sleep_hour + delivery_type + weight + diabetes + API, family = "binomial"(link=logit), data=train)
+eta <- predict(fullModel0, newdata = train, type = "response")
+p <- exp(eta) / (1 + exp(eta))
+
+par(mfrow=c(1,2))
+plot(train$sleep_hour,log(p/(1-p)),xlab="sleep_hour",ylab="log odds of status")
+plot(log(train$sleep_hour),log(p/(1-p)),xlab="log(sleep_hour)",ylab="log odds of status")
+```
+On the left plot, we observe that sleep_hour has a weak positive linear relationship to the log odds of status. As seen on the right plot, taking the log of sleep_hour also produced similar outcome and did not improve the linear relationship further. Therefore, the plot suggests the lack of a linear relationship. To guarantee that we fulfill the linearity assumption, we categorise sleep_hour into three groups:
+- <11.6 hours
+- 11.6-12.9 hours
+- >12.9 hours
+```{r}
+# define the cut points for each group
+cut_points <- c(-Inf, 11.6, 12.9, Inf)
+
+# use the cut function to create a factor variable with three levels
+sleep_hour_groups <- cut(train$sleep_hour, cut_points, 
+                         labels = c("<11.6 hours", "11.6-12.9 hours", ">12.9 hours"))
+```
+
+4. Logistic regression typically requires a large sample size. Our train dataset consists of 18,422 observations and our test dataset consists of 500 observations hence data size is large enough.
+
+## Model Building
+
+By fulfilling all 5 model assumptions, we conclude that we can build our prediction model using logistic regression. We format the independent variables according to the requirement in glm:
+```{r}
+status = train$status
+gender = factor(train$gender)
+fed_method = factor(train$fed_method)
+API = factor(train$API, levels = c("0-50", "51-100", "101-200", "201-300", ">300"))
+diabetes = factor(train$diabetes)
+delivery_type = factor(train$delivery_type)
+weight = factor(train$weight)
+```
+
+We choose logistic regression using the backwards selection method in the following steps:
+1. Create full model.
+```{r}
+fullModel = glm(status ~ gender + fed_method + sleep_hour_groups + 
+                delivery_type + weight + diabetes + API, family = "binomial"(link=logit))
+summary(fullModel)
+```
+
+2. Perform backwards stepwise regression. The independent variable "gender" is dropped from the model.
+```{r}
+stepwiseModel <- step(fullModel, direction = "backward")
+summary(stepwiseModel)
+```
+
+3. Based on stepwiseModel, we observe that the p-value for all levels of "fed_method" is greater than 0.05. Therefore, we decide to drop "fed_method".
+```{r}
+fittedModel = glm(status ~ sleep_hour_groups + delivery_type + weight + 
+                  diabetes + API, family = "binomial"(link=logit))
+summary(fittedModel)
+```
+
+We decide to select fittedModel as our final prediction model due to the following reasons:
+1. The AIC for fittedModel and stepwiseModel are both 23389, indicating that fittedModel fits the data as well as stepwiseModel.
+2. Since the residual deviance for fittedModel is 23369 and for stepwiseModel is 23363, the residual deviance is only slightly higher which is negligible.
+With one less predictor variable, we conclude that fittedModel is a better choice than stepwiseModel as it is easier to interpret and apply in practice.
+
+A combined table of odds ratio, 95% confidence interval and p-value is shown as below:
+```{r}
+OR <- exp(coef(fittedModel)[-1]) # odds ratio
+CI <- exp(confint(fittedModel, level = 0.95))[-1,] # 95% confidence intervals of odds ratio
+pval <- coef(summary(fittedModel))[-1, 'Pr(>|z|)'] # p-value
+
+table <- cbind(OR, CI, pval)
+table
+```
+
+Though the p-values of API51-100 and API>300 are greater than 0.05 when evaluated at a 5% significance level, we still retain them in our model because the other 2 API levels are statistically significant and API>300 is only slightly greater than 0.05. Similarly, we retain sleep_hour_groups11.6-12.9 hours because it is only slightly larger than 0.05 and sleep_hour_groups>12.9 hours is statistically significant.
+
+The odds ratio of sleep_hour_groups>12.9 hours, sleep_hour_groups11.6-12.9 hours, API>300, API201-300, API101-200, API51-100, delivery_type1, diabetesY are greater than 1 and the odds ratio of weight1 is lower than 1. 
+
+An odds ratio larger than 1 indicates a positive association to the response variable status. After controlling for the other variables, we interpret the following effects:
+
+- An infant who sleeps more than 12.9 hours per day increases their odds of developing respiratory disease by 28.82% whereas an infant who sleeps for 11.6 to 12.9 hours per day increases their odds by 8.76%.
+- An infant who is exposed to hazardous, very unhealthy, unhealthy and moderate air pollution has an increased odds of developing respiratory disease by 25.12%, 23.21%, 15.69% and 9.90% respectively. It also implies that the odds of developing disease increases as air quality deteriorates in the region where the infant resides.
+- An infant who is delivered via C-section has an increased odds of developing disease by 13.98% compared to an infant delivered naturally.
+- An infant who has a diabetic mother has an increased odds of developing disease by 10.08% compared to a non-diabetic mother.
+
+On the other hand, an odds ratio smaller than 1 implies a negative association to the response variable. This means that a mother possessing normal weight decreases her infant's odds of developing disease by 7.80%.
+
+By the 95% confidence interval of the odds ratio of all variables included in our model, we can conclude that interpretations of odds above are statistically significant because all confidence intervals do not contain 0, hence we reject the null hypothesis.
+
+We use these variables to form our fitted model as follows:
+```{r, fig.align='center'}
+knitr::include_graphics("model.png")
+```
+
+Hence, 
+```{r, fig.align='center'}
+knitr::include_graphics("eqeta.png")
+```
+
+and the probability of an infant developing respiratory disease within their first year of life is expressed as $p_i=\frac{\exp(\eta_i)}{1-\exp(\eta_i)}$.
+
+## Model Testing
+We now test our prediction model with an additional 500 observations provided by the scientist.
+```{r data}
+test <- read.csv("MATH3046_test_data.csv")
+str(test) # display the structure of the dataset
+sum(is.na(test)) # check for NA values
+```
+```{r}
+status = test$status
+gender = factor(test$gender)
+fed_method = factor(test$fed_method)
+API = factor(test$API, levels = c("0-50", "51-100", "101-200", "201-300", ">300"))
+diabetes = factor(test$diabetes)
+delivery_type = factor(test$delivery_type)
+weight = factor(test$weight)
+
+cut_points <- c(-Inf, 11.6, 12.9, Inf)
+sleep_hour_groups <- cut(test$sleep_hour, cut_points, 
+                         labels = c("<11.6 hours", "11.6-12.9 hours", ">12.9 hours"))
+```
+
+We calculate the predicted probabilities of the 500 infants developing respiratory disease within their first year of life.
+```{r}
+test <- data.frame(status,	gender,	fed_method,	sleep_hour_groups,	
+                   API,	diabetes,	delivery_type,	weight)
+prediction <- predict(fittedModel, newdata = test)
+probabilities <- exp(prediction) / (1 + exp(prediction))
+```
+
+To test the model accuracy, we selected a decision threshold of 0.36 by trial and error and generated its confusion matrix. The confusion matrix allows us to see how many of the actual positives were correctly identified as positives (true positives) and how many were incorrectly identified as negatives (false negatives). It also allows us to see how many of the actual negatives were correctly identified as negatives (true negatives) and how many were incorrectly identified as positives (false positives).
+```{r}
+# Convert probabilities to binary class labels
+probabilities_labels <- ifelse(probabilities > 0.36, 1, 0)
+
+# Create a confusion matrix
+conf_matrix <- table(test$status, probabilities_labels)
+
+conf_matrix
+
+# Calculate evaluation metrics
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+precision <- conf_matrix[2,2] / sum(conf_matrix[,2])
+recall <- conf_matrix[2,2] / sum(conf_matrix[2,])
+f1_score <- 2 * precision * recall / (precision + recall)
+
+# Print the confusion matrix and evaluation metrics
+cat("Confusion Matrix:\n", conf_matrix, "\n")
+cat("Accuracy:", accuracy, "\n")
+cat("Precision:", precision, "\n")
+cat("Recall:", recall, "\n")
+cat("F1-Score:", f1_score, "\n")
+```
+
+Based on our confusion matrix output, we observe that:
+- There are 303 healthy infants correctly predicted as no disease.
+- There are 35 unhealthy infants correctly predicted as developing disease.
+- There are 30 healthy infants incorrectly predicted as developing disease.
+- There are 132 unhealthy infants incorrectly predicted as no disease.
+
+Based on the performance metrics, we interpret that:
+- Accuracy: Our model predicted 67.6% of the cases correctly.
+- Precision: When our model predicted a positive case, it was correct 53.8% of the time.
+- Recall: Our model correctly identified 21.0% of the actual positive cases
+- F1-Score: An F1-Score of 0.302 implies that our model has a moderately performing precision and recall.
+
+## Summary
+This report investigated the relationship between infant disease status and eight predictors from three categories: infant characteristics, maternal characteristics and environmental factors. For infant characteristics, the variables include infant gender, feeding habits, average daily sleeping hour and delivery type. For maternal characteristics, we have data on the mother's weight, smoking status and diabetic status. The air pollution index is the only environmental factor in our analysis. 
+
+Based on our data collected from 18,422 infants across 40 countries, we have explored the factors associated with the disease status using three summary statistics: percentage frequency within each value of the categorical variable, mean and standard deviation. We used percentage frequency to summarise the characteristics of our categorical variables. Our findings revealed that the split between diseased female infants and diseased male infants is approximately the same. We also observed this outcome in feeding methods. There is a higher frequency percentage of diseased infants who were delivered through c-sections and had diabetic and underweight mothers. The percentage frequency for diseased infants also showed an increasing trend with the increased severity in the air pollution index. On the other hand, we use mean and standard deviation to inform us of average daily sleeping hours' characteristics, which is a continuous variable. The means and standard deviations appeared similar for diseased and non-diseased infants. With our expectation that gender, feeding methods, and average daily sleeping hour have no relationship compared to the diseased status, we tested the significance of the difference between disease status and our predictors with chi-squared and t-tests. Our findings implied that infant gender, feeding method and average daily sleeping hours did not show significance to disease status, hence are consistent with our expectation formed from the summary statistics.
+
+Subsequently, we built a prediction model to estimate the probability of an infant developing respiratory disease within their first year of life using logistic regression. The assumptions of the logistic regression model led to our decision to eliminate the mother's smoking status and categorise the infant's average sleeping hours into three groups. We executed these data processing steps because all infants' mothers are non-smokers, and the categorising enabled the linearity assumption to be fulfilled. We removed infant gender through backward stepwise regression.
+From analysing the p-values of predictor estimates evaluated at a 5% significance level, we found variable feeding methods insignificant and decided to remove it from our analysis. The prediction model has an AIC score of 23,389, as low as the backward stepwise regression model, and residual deviance of 23369, slightly higher than the backward stepwise regression model. AIC represents how well the model fits the data, and residual deviance compares the observed data with the predicted data; therefore, a low AIC score and residual deviance indicate a better fit. Since the increase is negligible, we proceed with the simplified model with one variable less. In conclusion, we identified the best subset of predictors with two variables from infant characteristics - average sleeping hours by group, and delivery type, two variables from maternal characteristics - weight and diabetic status, and the only environmental factor - air pollution index. 
+
+The analysis of p-value on the final model evaluated at a 5% significance level verified that our variable selection method is appropriate. The analysis of odds ratio showed that the average sleeping hours by group and air pollution index are the most dominant predictors. Our results showed that infants sleeping more than 12.9 hours on average per day increases their odds of developing respiratory diseases by 29%. In contrast, an average of 11.6 to 12.9 hours leads to a 9% increase in odds. Furthermore, the higher the air pollution index the infant is exposed to, the higher their odds of developing the disease. This relationship is demonstrated by a 25%, 23%, 16% and 10% increase in odds for a hazardous, very unhealthy, unhealthy and moderate air pollution index, respectively. The odds of developing disease for an infant delivered via c-section is 14% higher than an infant delivered naturally. The odds of developing disease for an infant with a diabetic mother is 9% higher than an infant with a healthy mother. Finally, an infant with a mother possessing normal weight can offset the odds of developing disease by 8%. In terms of model performance, we set a decision threshold of 0.36 on the predicted probabilities, which means that an infant with a predicted probability greater than 0.36 is classified as diseased, and a probability of 0.36 or lower indicates non-diseased. We tested the model on an additional 500 observations and analysed its confusion matrix to visualise the distribution of true positives, false negatives, false positives and true negatives cases. As a result, our prediction model predicted 67.6% of the cases accurately, classified 53.8% of the positive cases precisely, identified 21.0% of actual positive cases correctly and has an F1-Score of 0.302, indicating a moderately performing model.
+
+The moderate performance can be explained by the lack of variables in our analysis, which is a limitation to our model's predictive power. While we investigated eight predictors, only five were significant to our disease status. Other factors could affect disease status but were not accounted for. For instance, the scientist can extend the variables categorised as infant characteristics with variables such as genetics, Family history of respiratory disease,  immunisation status, allergies and birth weight. This is because if the family has history of respiratory diseases, the infant is likely to be inherited with the relevant genomes. We can also suspect that infant who are not vaccinated, have allergies and low birthweight are more vulnerable to developing respiratory diseases. For maternal characteristics, the scientist should also collect data of infants with smoker mothers since our dataset only includes infants with non-smoker mothers, which hinders us from utilising the variable. The scientist can also expand the category to parental characteristics to consider both parents and evaluate factors such as household income, father's education level and mother's education level. This is because we can suspect that household with lower income, and parents with lower awareness on health issues are likely to have lesser access to proper healthcare facilities and infants from these backgrounds are less likely to receive proper diagnosis or check up. For environmental factors, having only  API as a factor is limiting the model, the variables could be expanded to country, climate and housing conditions. This is because the country of residence can affect the level of air pollution, access to healthcare, and other environmental factors that can contribute to respiratory disease. Climate conditions such as temperature, humidity, and seasonal changes can also affect respiratory health. Additionally, housing conditions such as mold, dust, and poor ventilation can increase the risk of respiratory problems. 
+
+By considering these factors, we can develop a more comprehensive understanding of the potential risk factors for infant respiratory disease and improve our ability to predict and prevent it. However, since these variables were not explored, we were unable to investigate them and improve the model accuracy further.
+
+## Advice for the Scientist
+Regarding scientist's interest on knowing the probability of an infant developing respiratory disease with their first month of live, the provided model is not appropriate for answering the question because the model was built to predict the probability of an infant developing respiratory disease within their first year of life only. 
+
+Though some of the variables here could also be adopted, such as all the maternal characteristics and the environmental factors, the scientist would need to collect infant characteristics data specifically related to the first month of an infant's life, such as the infant's birth weight, length of gestation and gestational age. The scientist could also extend on the variables for maternal characteristics such as any relevant medical history of the mother or the infant. Based on this data, the scientist can build a new logistic regression model to predict the probability of an infant developing respiratory disease within their first month of life. However, the accuracy and reliability of such a model would need to be retested again, using similar techniques above such confusion matrix.
+
+The potential model could look like:
+```{r, fig.align='center'}
+knitr::include_graphics("eqpo.png")
+```
