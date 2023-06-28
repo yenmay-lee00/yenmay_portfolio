@@ -14,7 +14,7 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 - [Optimization of Vehicle Purchases for Profit Maximization]()
 
 ### 4️⃣ Statistical Models and Methods
-- [Association between Levels of Pollution and Mortality in US cities](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Association%20between%20Levels%20of%20Pollution%20and%20Mortality%20in%20US%20cities.pdf)
+- [Association between Levels of Pollution and Mortality in US Cities](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Association%20between%20Levels%20of%20Pollution%20and%20Mortality%20in%20US%20cities.pdf)
 
 ## Contact
 If you have any questions or would like to connect, feel free to reach out to me at yenmay.unmc@gmail.com.
