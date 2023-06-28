@@ -22,7 +22,7 @@ suppressPackageStartupMessages(library(factoextra))
 
 ##### Overview of Auto MPG Dataset
 
-The Auto MPG dataset consists of 6 numerical variables (2 of data type 'float' and 4 of data type 'integer') and 2 qualitative variables. The objective our analysis is to explore the relationships of fuel efficiency with other attributes of the cars included within the dataset. The description of each attribute is extracted from \href{https://rstudio-pubs-static.s3.amazonaws.com/668943_ebf3956c10654e178fd843baf6589c13.html}{\textcolor{blue}{this source}} and Wikipedia definitions.
+The Auto MPG dataset consists of 6 numerical variables (2 of data type 'float' and 4 of data type 'integer') and 2 qualitative variables. The objective of our analysis is to explore the relationships of fuel efficiency with other attributes of the cars included within the dataset. The description of each attribute is extracted from \href{https://rstudio-pubs-static.s3.amazonaws.com/668943_ebf3956c10654e178fd843baf6589c13.html}{\textcolor{blue}{this source}} and Wikipedia definitions.
 
 ```{r data}
 ds <- read.csv("auto-mpg.csv")
