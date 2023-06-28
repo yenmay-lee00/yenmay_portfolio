@@ -10,7 +10,7 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 - [Risk Prediction Model for Infant Respiratory Disease](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Risk%20Prediction%20Model%20for%20Infant%20Respiratory%20Diseases.pdf)
 
 ### 3️⃣ Optimization
-- [Q1: Finding MLE Using Ordinary Gradient Descent Method and Gradient Projection Method]()
+- [Q1: Finding MLE Using Ordinary Gradient Descent Method and Gradient Projection Method](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/20311298_Assignment%202.ipynb)
 - [Q2: Optimization of Vehicle Purchases for Profit Maximization]()
 
 ### 4️⃣ Statistical Models and Methods
