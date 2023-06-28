@@ -3,8 +3,8 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 
 ## Courses
 ### 1️⃣ Multivariate Analysis
-- [Vehicle Fuel Efficiency.pdf](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Pricing%20Insurance%20Products.pdf)
-- [Pricing Insurance Products.pdf](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Pricing%20Insurance%20Products.pdf)
+- [Vehicle Fuel Efficiency](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Pricing%20Insurance%20Products.pdf)
+- [Pricing Insurance Products](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Pricing%20Insurance%20Products.pdf)
 
 ### 2️⃣ Applied Statistical Modelling
 - Risk Prediction Model for Infant Respiratory Disease
