@@ -11,7 +11,7 @@ I'm Yen May. Welcome to my University Coursework Portfolio repository! This repo
 
 ### 3️⃣ Optimization
 - [Q1: Finding MLE Using Ordinary Gradient Descent Method and Gradient Projection Method](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/20311298_Assignment%202.ipynb)
-- [Q2: Optimization of Vehicle Purchases for Profit Maximization]()
+- [Q2: Optimization of Vehicle Purchases for Profit Maximization](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/20311298_Assignment%202%20(2%20a%2Cb%2Cc).pdf)
 
 ### 4️⃣ Statistical Models and Methods
 - [Association between Levels of Pollution and Mortality in US Cities](https://github.com/yenmay-lee00/yenmay_portfolio/blob/main/Association%20between%20Levels%20of%20Pollution%20and%20Mortality%20in%20US%20cities.pdf)
