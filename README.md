@@ -1,5 +1,5 @@
 ### Hi there 👋
-I'm Yen May. Welcome to my University Coursework Portfolio repository! This repository contains a collection of my coursework projects completed during my time at University of Nottingham Malaysia.
+I'm Yen May. Welcome to my University Coursework Portfolio repository! This repository contains a collection of my coursework projects completed during my time in the University of Nottingham Malaysia.
 
 ## Courses
 ### 1️⃣ Multivariate Analysis
